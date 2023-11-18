@@ -1,0 +1,43 @@
+version: "3.7"
+# -----------------------------------------------------------------------
+services: 
+  graphdb:
+    build:
+      context: ./graphdb
+    image: lwua/lwua_graphdb
+    container_name: lwua_graphdb
+    ports:
+      - 7200:7200     # HTTP
+    volumes:
+      - ../data:/root/graphdb-import/data
+    # todo - think about volumes for persistence of data ?
+    labels:
+      be.vliz.container.project: "LWUA"
+      be.vliz.container.group: "services"
+
+  ldes:
+    build: 
+      context: ./ldes-ingest/ 
+      #args:
+    image: lwua/ldes_ingest
+    container_name: ldes_ingest
+    volumes: 
+      - ../data:/data    # Store for any input data 
+      - ../logging:/logging   # Store for any input data
+    env_file:
+      - ../.env
+    environment:
+      - GDB_BASE=http://graphdb:7200/
+      - INGEST_DATA_FOLDER=/data
+    # for test / dev -- no restart and single run
+    restart: "no"
+    command: run
+    # towards deploy -- make restart and keep service running -- consequence: use ctrl-c to stop
+    # restart: unless-stopped
+    # command: start
+    links:
+      - graphdb
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
